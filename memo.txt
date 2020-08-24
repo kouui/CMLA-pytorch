@@ -1,0 +1,7 @@
+- to read (bytes) pickle file created by python2.7 cPickle in python3
+(ref : https://qiita.com/Kodaira_/items/91207a7e092f491fca43)
+>>> import pickle
+>>> out = pickle.load(open('./data/res15/word_embeddings200_res15', 'rb'), encoding='bytes' )
+
+- to create conda environment
+$ conda env create -n environment_name -f ./environment.yml
