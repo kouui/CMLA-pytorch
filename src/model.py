@@ -53,7 +53,7 @@ def concatenate_h0(h0_, n_):
 
 class CMLANet(nn.Module):
 
-    def __init__(self, nh, nc, de, cs, bs, nt_a=20, nt_o=20, csv=1, iteration=1):
+    def __init__(self, nh, nc, de, cs, bs, device, nt_a=20, nt_o=20, csv=1, iteration=1):
         r"""
         Parameters:
         -----------
@@ -69,6 +69,8 @@ class CMLANet(nn.Module):
         """
         super(CMLANet, self).__init__()
 
+        self.device = device
+
         self.n_in = n_in = de * cs # embedding-dimension * window-context-size
         self.n_v = n_v = nt_a + nt_o
         self.n_inv = n_inv = n_v * csv
@@ -79,38 +81,45 @@ class CMLANet(nn.Module):
         self.gru = nn.GRU(input_size=n_in, hidden_size=nh, num_layers=1, bias=True, batch_first=True)
         self.dropout_dict["gru"] = nn.Dropout(p=0.0, inplace=False)
         ##self.h0 = torch.zeros( (bs,get_rnn_h0_ndim1(self.gru),nh), dtype=_dtype )
-        self.h0 = torch.zeros( (get_rnn_h0_ndim1(self.gru),nh), dtype=_dtype )
+        self.h0 = torch.zeros( (get_rnn_h0_ndim1(self.gru),nh), dtype=_dtype ).to(device)
 
-        self.m0_a = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,)) )
-        self.m0_o = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,)) )
+        self.m0_a = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,)) ).to(device)
+        self.m0_o = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,)) ).to(device)
 
 
-        self.Ua = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_a, nh, nh)) )
-        self.Va = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) )
-        self.Uo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) )
-        self.Vo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_a, nh, nh)) )
+        self.Ua = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_a, nh, nh)) ).to(device)
+        self.Va = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) ).to(device)
+        self.Uo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) ).to(device)
+        self.Vo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_a, nh, nh)) ).to(device)
 
         self.gru_a = nn.GRU(input_size=n_v, hidden_size=n_v, num_layers=1, bias=True, batch_first=True)
         self.dropout_dict["gru_a"] = nn.Dropout(p=0.0, inplace=False)
-        self.r0_a = torch.zeros( (get_rnn_h0_ndim1(self.gru_a),n_v), dtype=_dtype )
+        self.r0_a = torch.zeros( (get_rnn_h0_ndim1(self.gru_a),n_v), dtype=_dtype ).to(device)
         self.gru_o = nn.GRU(input_size=n_v, hidden_size=n_v, num_layers=1, bias=True, batch_first=True)
         self.dropout_dict["gru_o"] = nn.Dropout(p=0.0, inplace=False)
-        self.r0_o = torch.zeros( (get_rnn_h0_ndim1(self.gru_o),n_v), dtype=_dtype )
+        self.r0_o = torch.zeros( (get_rnn_h0_ndim1(self.gru_o),n_v), dtype=_dtype ).to(device)
 
-        self.va = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (n_v,)) )
-        self.vo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (n_v,)) )
+        self.va = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (n_v,)) ).to(device)
+        self.vo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (n_v,)) ).to(device)
 
 
-        self.Ma = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,nh)) )
-        self.Mo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,nh)) )
+        self.Ma = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,nh)) ).to(device)
+        self.Mo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nh,nh)) ).to(device)
 
         self.linear_a = torch.nn.Linear(in_features=n_v, out_features=ny, bias = True)
         self.dropout_dict["linear_a"] = nn.Dropout(p=0.0, inplace=False)
         self.linear_o = torch.nn.Linear(in_features=n_v, out_features=ny, bias = True)
         self.dropout_dict["linear_o"] = nn.Dropout(p=0.0, inplace=False)
 
-        self.padding = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) )
-        self.punkt   = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) )
+        self.padding = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) ).to(device)
+        self.punkt   = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) ).to(device)
+
+        pars = [self.padding, self.punkt, self.Ma, self.Mo, self.va, self.vo,
+                self.r0_a, self.r0_o, self.Ua, self.Va, self.Uo, self.Vo,
+                self.m0_a, self.m0_o, self.h0]
+
+        for par in pars:
+            par.requires_grad = True
 
     def set_dropout_rate(self, p):
 
@@ -123,10 +132,12 @@ class CMLANet(nn.Module):
         h_input[:, -2, :] = self.padding[:] * 1
         h_input[:, -1, :] = self.punkt[:] * 1
         self.h_input = h_input
-        self.h_input.requires_grad = True
+        #print(h_input.device)
+        #self.h_input.requires_grad = True
 
         #-- x : (batch_size, n_word, n_in)
-        x = create_x(context_words, h_input)
+        x = create_x(context_words, h_input).to(h_input.device)
+        #print(x.device)
         bs, n_word, n_in = x.shape
         n_v = self.n_v
 
@@ -146,8 +157,8 @@ class CMLANet(nn.Module):
 
 
         # hidden_a, hidden_o : (bs, 2, n_word, n_v)
-        hidden_a = torch.zeros( (bs, 2, n_word, n_v), dtype=_dtype )
-        hidden_o = torch.zeros( (bs, 2, n_word, n_v), dtype=_dtype )
+        hidden_a = torch.zeros( (bs, 2, n_word, n_v), dtype=_dtype ).to(self.device)
+        hidden_o = torch.zeros( (bs, 2, n_word, n_v), dtype=_dtype ).to(self.device)
 
         for b_ in range(bs):
             for i_ in range(2):
@@ -159,8 +170,8 @@ class CMLANet(nn.Module):
 
         # final softmax to get prediction from attention vector r_{i}^{a}
         # ya_pred, yo_pred : (bs, n_word, ny)
-        ya_pred = torch.zeros( (bs, n_word, self.ny), dtype=_dtype )
-        yo_pred = torch.zeros( (bs, n_word, self.ny), dtype=_dtype )
+        ya_pred = torch.zeros( (bs, n_word, self.ny), dtype=_dtype ).to(self.device)
+        yo_pred = torch.zeros( (bs, n_word, self.ny), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
             ya_pred[b_,:,:] = F.softmax( self.dropout_dict["linear_a"](self.linear_a(hidden_a[b_,:,:]) ), dim=1 )
             yo_pred[b_,:,:] = F.softmax( self.dropout_dict["linear_o"](self.linear_o(hidden_o[b_,:,:]) ), dim=1 )
@@ -225,8 +236,8 @@ class CMLANet(nn.Module):
         #-- hidden_aspect : (bs, n_word, n_v)
         hidden_aspect = self._get_hidden_aspect(h_, ma_, mo_)
 
-        e_ = torch.zeros( (bs, n_word), dtype=_dtype )
-        ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype )
+        e_ = torch.zeros( (bs, n_word), dtype=_dtype ).to(self.device)
+        ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
             e_[b_,:] = torch.matmul( hidden_aspect[b_,:,:], self.va[:] )
             #-- alpha : (n_word,)
@@ -252,7 +263,7 @@ class CMLANet(nn.Module):
         r_ : (bs, n_word, n_v)
         """
         #-- tensor operation + GRU to get attention vector r_{i}^{a}
-        a_ = torch.zeros( (h_.shape[0], h_.shape[1], self.n_v), dtype=_dtype )
+        a_ = torch.zeros( (h_.shape[0], h_.shape[1], self.n_v), dtype=_dtype ).to(self.device)
         for b_ in range(h_.shape[0]):
             for w_ in range(h_.shape[1]):
                 #-- (nv_a)
@@ -284,8 +295,8 @@ class CMLANet(nn.Module):
         #-- hidden_aspect : (bs, n_word, n_v)
         hidden_aspect = self._get_hidden_opinion(h_, ma_, mo_)
 
-        e_ = torch.zeros( (bs, n_word), dtype=_dtype )
-        ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype )
+        e_ = torch.zeros( (bs, n_word), dtype=_dtype ).to(self.device)
+        ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
             e_[b_,:] = torch.matmul( hidden_aspect[b_,:,:], self.vo[:] )
             #-- alpha : (n_word,)
@@ -311,7 +322,7 @@ class CMLANet(nn.Module):
         r_ : (bs, n_word, n_v)
         """
         #-- tensor operation + GRU to get attention vector r_{i}^{a}
-        a_ = torch.zeros( (h_.shape[0], h_.shape[1], self.n_v), dtype=_dtype )
+        a_ = torch.zeros( (h_.shape[0], h_.shape[1], self.n_v), dtype=_dtype ).to(self.device)
         for b_ in range(h_.shape[0]):
             for w_ in range(h_.shape[1]):
                 #-- (nv_a)
@@ -340,7 +351,7 @@ class CMLANet(nn.Module):
         ti_ : (K :: nv_a or nv_o,)
         """
         nk_ = Dm_.shape[0]
-        ti_ = torch.zeros( (nk_,), dtype=_dtype )
+        ti_ = torch.zeros( (nk_,), dtype=_dtype ).to(self.device)
         for k in range(nk_):
             ti_[k] = torch.dot( hi_, torch.matmul(Dm_[k], um_) )
         return ti_

@@ -114,8 +114,9 @@ if __name__ == "__main__":
     set_status(s_=s_, status_=args["logStatus"])
 
     net = CMLANet(nh=params["nHidden"], nc=params["nClass"],
-                  de=params["nEmbedDimension"], cs=params["win"], bs=params["batchSize"])
-    net.double().to(params["device"])
+                  de=params["nEmbedDimension"], cs=params["win"],
+                  bs=params["batchSize"], device=params["device"]).to(params["device"])
+    net.double()
 
     #-- set dropout in net to params["dropout"] here
     net.set_dropout_rate(params["dropout"])
@@ -216,7 +217,7 @@ if __name__ == "__main__":
             ##aux["punkt"]   -= params["lr"] * grad_emb[:,-1,:].mean(axis=0)
 
             #break
-            h_input_new = net.h_input.detach().numpy()
+            h_input_new = net.h_input.detach().cpu().numpy()
             for k in range(h_input_new.shape[0]):
                 for i in index2word[k,:].tolist():
                     try:
