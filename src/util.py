@@ -4,6 +4,7 @@
 #-----------------------------------------------------------------------------
 
 import datetime
+from format_outcome import format_outcome
 
 def print_separation_line(title=None):
     r"""
@@ -62,3 +63,5 @@ def save_score_to_text(file, epoch, precision_as, recall_as, f1_as, precision_op
         out.write("opinion_f1: ")
         out.write(str(f1_op))
         out.write('\n')
+
+    format_outcome(inFile_=file, outFile_=file[:-4]+"_formated.txt")

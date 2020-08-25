@@ -9,6 +9,7 @@
 import pickle
 import torch
 import time
+import datetime
 import numpy as np
 import os
 
@@ -69,14 +70,18 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "terminal"
+        "logStatus" : "log",#"terminal",
+        "logFile" : "",
+        "debug" : True,
+        "logSequence" : False,
+        "version" : "English",
+        "text"    : "../txt/outcome.txt",
     }
+    args["logFile"] = "../log/" + args["version"] + "/" + datetime.datetime.now().strftime("%Y%m%d_%H%M") + ".txt"
 #-----------------------------------------------------------------------------
 # Learning Control Hyperparameters
 #-----------------------------------------------------------------------------
     params = {
-        "version" : "English",
-        "text"    : "../txt/outcome.txt",
         "lr" : 0.05,
         "win" : 3,
         "nHidden" : 50,
@@ -89,19 +94,31 @@ if __name__ == "__main__":
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "save" : False,
     }
+
+#-----------------------------------------------------------------------------
+# Prepare Log fileObj
+#-----------------------------------------------------------------------------
+
+    if args["logStatus"] == "log":
+        idx = args["logFile"].rfind('/')
+        folder = args["logFile"][:idx]
+        if not os.path.exists(folder) : os.mkdir(folder)
+        fileObj = open(args["logFile"], 'w')
+    else:
+        fileObj = None
 #-----------------------------------------------------------------------------
 # Data and Embed Model Loading
 #-----------------------------------------------------------------------------
 
     s_ = "loading data"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     with open(args["data"], 'rb') as handle:
         vocab, train_seq_list, test_seq_list = pickle.load(handle)
 
 
     s_ = "loading embed model"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     with open(args["embModel"], 'rb') as handle:
         emb_model = pickle.load(handle, encoding="bytes")
@@ -111,7 +128,7 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 
     s_ = "initializing network model"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     net = CMLANet(nh=params["nHidden"], nc=params["nClass"],
                   de=params["nEmbedDimension"], cs=params["win"],
@@ -140,7 +157,7 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 
     s_ = "building dataset and dataloader"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     dataset = {
         "train" : CMLADataset(data_list=train_seq_list, emb_model=emb_model),
@@ -150,9 +167,9 @@ if __name__ == "__main__":
     dataset["test"].set_n_emb_dim(params["nEmbedDimension"])
 
     s_ = f"length of train set : {len(dataset['train'])}"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
     s_ = f"length of test set : {len(dataset['test'])}"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     #-- batch_size must be 1 because of the variable length of node
     dataloader = {}
@@ -167,7 +184,7 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 
     s_ = "start training"
-    set_status(s_=s_, status_=args["logStatus"])
+    set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
     min_error = float("inf")
     for epoch in range(1, params["nEpoch"]+1):
@@ -233,20 +250,21 @@ if __name__ == "__main__":
             epoch_error += error
             count += 1
 
-            #s_ = f"epoch: {epoch:02d} i_batch: {i_batch:05d} error: {error:.2f} "
-            #s_ += f"time collapsed: {time.time()-now:.2f}[sec]"
-            #set_status(s_=s_, status_=args["logStatus"])
+            if args["logSequence"]:
+                s_ = f"epoch: {epoch:02d} i_batch: {i_batch:05d} error: {error:.2f} "
+                s_ += f"time collapsed: {time.time()-now:.2f}[sec]"
+                set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
-            if i_batch > 100:
+            if args["debug"] and i_batch > 50:
                 break
         epoch_error /= count
 
 #-----------------------------------------------------------------------------
 # evaluate here
 #-----------------------------------------------------------------------------
-        if False:
+        if not args["debug"]:
             s_ = "Evaluating...."
-            set_status(s_=s_, status_=args["logStatus"])
+            set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
             with torch.no_grad():
                 net.eval()
 
@@ -283,7 +301,7 @@ if __name__ == "__main__":
                 precision_as, recall_as, f1_as = score_aspect(true_a, pred_a)
                 precision_op, recall_op, f1_op = score_opinion(true_o, pred_o)
 
-                save_score_to_text(params["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
+                save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
 
 #-----------------------------------------------------------------------------
 
@@ -291,18 +309,20 @@ if __name__ == "__main__":
 # saving model here
 #-----------------------------------------------------------------------------
         #-- save parameters if the current model is better than previous best model
-        if params["save"] and  epoch_error < min_error:
+        if epoch_error < min_error:
             min_error = epoch_error
 
-            s_ = "saving model"
-            set_status(s_=s_, status_=args["logStatus"])
-            checkpoint = {
-                    "model state" : net.state_dict(),
-                }
-            folder = f"../checkpoints/{params['version']}"
-            if not os.path.exists(folder) : os.mkdir(folder)
-            torch.save(checkpoint, os.path.join(folder, f"checkpoint_epoch_{epoch}.pkl") )
+            if not args["debug"] and params["save"]:
+
+                s_ = "saving model"
+                set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
+                checkpoint = {
+                        "model state" : net.state_dict(),
+                    }
+                folder = f"../checkpoints/{args['version']}"
+                if not os.path.exists(folder) : os.mkdir(folder)
+                torch.save(checkpoint, os.path.join(folder, f"checkpoint_epoch_{epoch}.pkl") )
 #-----------------------------------------------------------------------------
         #-- done with epoch
         s_ = f"done with epoch {epoch:02d}, epoch_error = {epoch_error:.2f}, min_error = {min_error:.2f}"
-        set_status(s_=s_, status_=args["logStatus"])
+        set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)

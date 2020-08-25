@@ -1,10 +1,7 @@
 import sys
 from collections import OrderedDict
 
-if __name__ == "__main__":
-
-    inFile = sys.argv[1]
-    outFile = sys.argv[2]
+def format_outcome(inFile, outFile):
 
     with open(inFile, 'r') as f:
         lns = f.readlines()
@@ -39,3 +36,9 @@ if __name__ == "__main__":
                 s_ = f"{value[i]:<.4f}"
                 f.write(f"{s_:<20s}")
             f.write('\n')
+
+if __name__ == "__main__":
+
+    inFile_ = sys.argv[1]
+    outFile_ = sys.argv[2]
+    format_outcome(inFile_, outFile_)
