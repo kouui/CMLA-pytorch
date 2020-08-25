@@ -1,0 +1,7 @@
+[2020/08/25 13:44:37]: loading data
+[2020/08/25 13:44:37]: loading embed model
+[2020/08/25 13:44:37]: initializing network model
+[2020/08/25 13:44:37]: building dataset and dataloader
+[2020/08/25 13:44:37]: length of train set : 1315
+[2020/08/25 13:44:37]: length of test set : 685
+[2020/08/25 13:44:37]: start training

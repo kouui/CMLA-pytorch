@@ -72,7 +72,8 @@ if __name__ == "__main__":
         "embModel" : "../data/res15/word_embeddings200_res15",
         "logStatus" : "log",#"terminal",
         "logFile" : "",
-        "debug" : True,
+        "debugTrain" : True,
+        "evaluate" : True,
         "logSequence" : False,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
@@ -93,6 +94,7 @@ if __name__ == "__main__":
         "dropout" : 0.3,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "save" : False,
+        "fixEmbed" : False,
     }
 
 #-----------------------------------------------------------------------------
@@ -138,13 +140,6 @@ if __name__ == "__main__":
     #-- set dropout in net to params["dropout"] here
     net.set_dropout_rate(params["dropout"])
 
-
-    ##aux = {
-    ##    # padding for context window padding
-    ##    "padding" : torch.as_tensor( np.random.uniform(-0.2, 0.2, (params["nEmbedDimension"],)) ),
-    ##    # punkt for node with node.is_word==0
-    ##    "punkt"   : torch.as_tensor( np.random.uniform(-0.2, 0.2, (params["nEmbedDimension"],)) ),
-    ##}
 #-----------------------------------------------------------------------------
 # optimizer
 #-----------------------------------------------------------------------------
@@ -207,10 +202,6 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 # training sequence(s)
 #-----------------------------------------------------------------------------
-            #time.sleep(0.1)
-
-            ##h_input[:, -2, :] = aux["padding"][:]
-            ##h_input[:, -1, :] = aux["punkt"][:]
 
             context_words = torch.tensor(
                          create_context_window(index2word, params["win"], seq_size),
@@ -228,20 +219,17 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 # modify embedding model
 #-----------------------------------------------------------------------------
-            ##h_input[:,:,:] -= params["lr"] * grad_emb
 
-            ##aux["padding"] -= params["lr"] * grad_emb[:,-2,:].mean(axis=0)
-            ##aux["punkt"]   -= params["lr"] * grad_emb[:,-1,:].mean(axis=0)
+            if not params["fixEmbed"]:
 
-            #break
-            h_input_new = net.h_input.detach().cpu().numpy()
-            for k in range(h_input_new.shape[0]):
-                for i in index2word[k,:].tolist():
-                    try:
-                        j = index_embed[k,i].data.item()
-                        emb_model[:, j] = h_input_new[k,i,:]
-                    except IndexError:
-                        continue
+                h_input_new = net.h_input.detach().cpu().numpy()
+                for k in range(h_input_new.shape[0]):
+                    for i in index2word[k,:].tolist():
+                        try:
+                            j = index_embed[k,i].data.item()
+                            emb_model[:, j] = h_input_new[k,i,:]
+                        except IndexError:
+                            continue
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -255,14 +243,14 @@ if __name__ == "__main__":
                 s_ += f"time collapsed: {time.time()-now:.2f}[sec]"
                 set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
-            if args["debug"] and i_batch > 50:
+            if args["debugTrain"] and i_batch > 50:
                 break
         epoch_error /= count
 
 #-----------------------------------------------------------------------------
 # evaluate here
 #-----------------------------------------------------------------------------
-        if not args["debug"]:
+        if args["evaluate"]:
             s_ = "Evaluating...."
             set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
             with torch.no_grad():
@@ -312,7 +300,7 @@ if __name__ == "__main__":
         if epoch_error < min_error:
             min_error = epoch_error
 
-            if not args["debug"] and params["save"]:
+            if not args["debugTrain"] and params["save"]:
 
                 s_ = "saving model"
                 set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)

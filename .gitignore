@@ -136,3 +136,7 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+checkpoints/*.pkl
+log/*.txt
+txt/*.txt

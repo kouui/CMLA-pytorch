@@ -70,6 +70,7 @@ class CMLANet(nn.Module):
         super(CMLANet, self).__init__()
 
         self.device = device
+        self.fixEmbed = fixEmbed
 
         self.n_in = n_in = de * cs # embedding-dimension * window-context-size
         self.n_v = n_v = nt_a + nt_o
@@ -133,7 +134,7 @@ class CMLANet(nn.Module):
         h_input[:, -1, :] = self.punkt[:] * 1
         self.h_input = h_input
         #print(h_input.device)
-        #self.h_input.requires_grad = True
+        print(h_input.requires_grad)
 
         #-- x : (batch_size, n_word, n_in)
         x = create_x(context_words, h_input).to(h_input.device)
