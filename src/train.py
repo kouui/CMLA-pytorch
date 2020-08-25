@@ -70,7 +70,7 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "log",#"terminal",
+        "logStatus" : "terminal",
         "logFile" : "",
         "debugTrain" : True,
         "evaluate" : True,
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         "nEmbedDimension" : 200,
         "nClass" : 3,
         "batchSize" : 1,
-        "nEpoch" : 100,
+        "nEpoch" : 1,
         "evaluateStep" : 500,
         "dropout" : 0.3,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
@@ -207,7 +207,9 @@ if __name__ == "__main__":
                          create_context_window(index2word, params["win"], seq_size),
                          dtype=torch.uint8 ).to(params["device"])
 
-
+            print(index2word, seq_size)
+            print(context_words)
+            break
             #-- ya_pred, yo_pred : (bs, n_word, ny)
             ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:])
 
