@@ -70,7 +70,6 @@ class CMLANet(nn.Module):
         super(CMLANet, self).__init__()
 
         self.device = device
-        self.fixEmbed = fixEmbed
 
         self.n_in = n_in = de * cs # embedding-dimension * window-context-size
         self.n_v = n_v = nt_a + nt_o
