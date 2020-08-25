@@ -74,7 +74,7 @@ if __name__ == "__main__":
         "logFile" : "",
         "debugTrain" : True,
         "evaluate" : True,
-        "logSequence" : False,
+        "logSequence" : True,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
     }
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     if args["logStatus"] == "log":
         idx = args["logFile"].rfind('/')
         folder = args["logFile"][:idx]
-        if not os.path.exists(folder) : os.mkdir(folder)
+        if not os.path.exists(folder) : os.makedirs(folder)
         fileObj = open(args["logFile"], 'w')
     else:
         fileObj = None
@@ -308,7 +308,7 @@ if __name__ == "__main__":
                         "model state" : net.state_dict(),
                     }
                 folder = f"../checkpoints/{args['version']}"
-                if not os.path.exists(folder) : os.mkdir(folder)
+                if not os.path.exists(folder) : os.makedirs(folder)
                 torch.save(checkpoint, os.path.join(folder, f"checkpoint_epoch_{epoch}.pkl") )
 #-----------------------------------------------------------------------------
         #-- done with epoch

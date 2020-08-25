@@ -133,7 +133,6 @@ class CMLANet(nn.Module):
         h_input[:, -1, :] = self.punkt[:] * 1
         self.h_input = h_input
         #print(h_input.device)
-        print(h_input.requires_grad)
 
         #-- x : (batch_size, n_word, n_in)
         x = create_x(context_words, h_input).to(h_input.device)
