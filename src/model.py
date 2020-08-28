@@ -128,7 +128,9 @@ class CMLANet(nn.Module):
             v.p = p
 
     # if True : return 1, 1
-    def forward(self, context_words, h_input, h_input_size):
+    def forward(self, context_words, h_input, h_input_size, seq_size):
+
+        self.seq_size  =  seq_size
 
         bs, n_word, _ = context_words.shape
         for b in range(bs):
@@ -256,7 +258,8 @@ class CMLANet(nn.Module):
 
         ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
-            ctx_pool_[b_,:] = torch.matmul( alpha_[b_,:], h_[b_,:,:] )
+            nw_ = self.seq_size[b_]
+            ctx_pool_[b_,:] = torch.matmul( alpha_[b_,:nw_], h_[b_,:nw_,:] )
 
         return ctx_pool_, e_
 
@@ -326,7 +329,8 @@ class CMLANet(nn.Module):
 
         ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
-            ctx_pool_[b_,:] = torch.matmul( alpha_[b_,:], h_[b_,:,:] )
+            nw_ = self.seq_size[b_]
+            ctx_pool_[b_,:] = torch.matmul( alpha_[b_,:nw_], h_[b_,:nw_,:] )
 
         return ctx_pool_, e_
 

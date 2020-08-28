@@ -19,6 +19,8 @@ from model import CMLANet
 from dataset import CMLADataset, collate_fn
 from score import score_aspect, score_opinion
 
+#from tqdm import tqdm
+
 def create_context_window(index2word_list_, win_, h_input_size_list_):
     r"""
     Parameters:
@@ -212,7 +214,7 @@ if __name__ == "__main__":
                          dtype=torch.uint8 ).to(params["device"])
 
             #-- ya_pred, yo_pred : (bs, n_word, ny)
-            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:])
+            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:], seq_size[:])
 
 
             error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
@@ -244,11 +246,11 @@ if __name__ == "__main__":
                     #print(f"{j} : taking mean over {len(li)} vectors")
 
                     new_emb_vec = np.zeros(params["nEmbedDimension"])
-                    count = 0
+                    count_ = 0
                     for k, i in li:
                         new_emb_vec[:] += h_input_new[k,i,:]
-                        count += 1
-                    emb_model[:, j] = new_emb_vec[:] / count
+                        count_ += 1
+                    emb_model[:, j] = new_emb_vec[:] / count_
 
 #-----------------------------------------------------------------------------
 
@@ -296,7 +298,7 @@ if __name__ == "__main__":
                                  create_context_window(index2word, params["win"], h_input_size),
                                  dtype=torch.uint8 ).to(params["device"])
 
-                    ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:])
+                    ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:], seq_size[:])
 
                     ya_predLabel = ya_pred.argmax(axis=2)
                     yo_predLabel = yo_pred.argmax(axis=2)
@@ -314,6 +316,7 @@ if __name__ == "__main__":
 
                 if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
+                print(f"{precision_as:.3f}  {recall_as:.3f}  {f1_as:.3f}  {precision_op:.3f}  {recall_op:.3f}  {f1_op:.3f}")
 
 #-----------------------------------------------------------------------------
 
