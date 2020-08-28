@@ -77,6 +77,7 @@ if __name__ == "__main__":
         "logSequence" : True,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
+        "save" : False,
     }
     args["logFile"] = "../log/" + args["version"] + "/" + datetime.datetime.now().strftime("%Y%m%d_%H%M") + ".txt"
 #-----------------------------------------------------------------------------
@@ -90,10 +91,8 @@ if __name__ == "__main__":
         "nClass" : 3,
         "batchSize" : 1,
         "nEpoch" : 100,
-        "evaluateStep" : 500,
         "dropout" : 0.3,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-        "save" : False,
         "fixEmbed" : False,
     }
 
@@ -289,6 +288,7 @@ if __name__ == "__main__":
                 precision_as, recall_as, f1_as = score_aspect(true_a, pred_a)
                 precision_op, recall_op, f1_op = score_opinion(true_o, pred_o)
 
+                if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
 
 #-----------------------------------------------------------------------------
@@ -300,7 +300,7 @@ if __name__ == "__main__":
         if epoch_error < min_error:
             min_error = epoch_error
 
-            if not args["debugTrain"] and params["save"]:
+            if not args["debugTrain"] and args["save"]:
 
                 s_ = "saving model"
                 set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
