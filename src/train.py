@@ -70,9 +70,9 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "log",
+        "logStatus" : "terminal",
         "logFile" : "",
-        "debugTrain" : True,
+        "debugTrain" : False,
         "evaluate" : True,
         "logSequence" : True,
         "version" : "English",
@@ -143,8 +143,8 @@ if __name__ == "__main__":
 # optimizer
 #-----------------------------------------------------------------------------
 
-    #optimizer = torch.optim.SGD(params=net.parameters(), lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    optimizer = torch.optim.Adam(params=net.parameters(), lr=params["lr"]*0.1, weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.SGD(params=net.parameters(), lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    #optimizer = torch.optim.Adam(params=net.parameters(), lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
@@ -290,6 +290,7 @@ if __name__ == "__main__":
 
                 if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
+                print(f"{precision_as:.3f}  {recall_as:.3f}  {f1_as:.3f}  {precision_op:.3f}  {recall_op:.3f}  {f1_op:.3f}")
 
 #-----------------------------------------------------------------------------
 

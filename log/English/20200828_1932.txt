@@ -1,0 +1,36 @@
+[2020/08/28 19:32:02]: loading data
+[2020/08/28 19:32:02]: loading embed model
+[2020/08/28 19:32:02]: initializing network model
+[2020/08/28 19:32:02]: building dataset and dataloader
+[2020/08/28 19:32:02]: length of train set : 1315
+[2020/08/28 19:32:02]: length of test set : 685
+[2020/08/28 19:32:02]: start training
+[2020/08/28 19:32:02]: epoch: 01 i_batch: 00000 error: 2.11 time collapsed: 0.50[sec]
+[2020/08/28 19:32:03]: epoch: 01 i_batch: 00001 error: 1.23 time collapsed: 0.97[sec]
+[2020/08/28 19:32:04]: epoch: 01 i_batch: 00002 error: 0.59 time collapsed: 0.64[sec]
+[2020/08/28 19:32:05]: epoch: 01 i_batch: 00003 error: 0.28 time collapsed: 1.52[sec]
+[2020/08/28 19:32:06]: epoch: 01 i_batch: 00004 error: 2.08 time collapsed: 0.41[sec]
+[2020/08/28 19:32:08]: epoch: 01 i_batch: 00005 error: 0.31 time collapsed: 1.64[sec]
+[2020/08/28 19:32:08]: epoch: 01 i_batch: 00006 error: 0.00 time collapsed: 0.24[sec]
+[2020/08/28 19:32:08]: epoch: 01 i_batch: 00007 error: 0.94 time collapsed: 0.63[sec]
+[2020/08/28 19:32:09]: epoch: 01 i_batch: 00008 error: 0.30 time collapsed: 0.71[sec]
+[2020/08/28 19:32:09]: epoch: 01 i_batch: 00009 error: 1.14 time collapsed: 0.29[sec]
+[2020/08/28 19:32:10]: epoch: 01 i_batch: 00010 error: 0.23 time collapsed: 0.19[sec]
+[2020/08/28 19:32:10]: epoch: 01 i_batch: 00011 error: 4.80 time collapsed: 0.86[sec]
+[2020/08/28 19:32:11]: epoch: 01 i_batch: 00012 error: 3.94 time collapsed: 0.46[sec]
+[2020/08/28 19:32:13]: epoch: 01 i_batch: 00013 error: 0.20 time collapsed: 2.09[sec]
+[2020/08/28 19:32:14]: epoch: 01 i_batch: 00014 error: 1.04 time collapsed: 0.61[sec]
+[2020/08/28 19:32:15]: epoch: 01 i_batch: 00015 error: 0.72 time collapsed: 1.00[sec]
+[2020/08/28 19:32:15]: epoch: 01 i_batch: 00016 error: 1.68 time collapsed: 0.32[sec]
+[2020/08/28 19:32:16]: epoch: 01 i_batch: 00017 error: 4.53 time collapsed: 0.90[sec]
+[2020/08/28 19:32:16]: epoch: 01 i_batch: 00018 error: 0.72 time collapsed: 0.47[sec]
+[2020/08/28 19:32:17]: epoch: 01 i_batch: 00019 error: 0.40 time collapsed: 0.44[sec]
+[2020/08/28 19:32:17]: epoch: 01 i_batch: 00020 error: 0.66 time collapsed: 0.34[sec]
+[2020/08/28 19:32:18]: epoch: 01 i_batch: 00021 error: 1.81 time collapsed: 0.53[sec]
+[2020/08/28 19:32:19]: epoch: 01 i_batch: 00022 error: 0.36 time collapsed: 1.19[sec]
+[2020/08/28 19:32:20]: epoch: 01 i_batch: 00023 error: 3.52 time collapsed: 0.92[sec]
+[2020/08/28 19:32:20]: epoch: 01 i_batch: 00024 error: 6.14 time collapsed: 0.63[sec]
+[2020/08/28 19:32:22]: epoch: 01 i_batch: 00025 error: 1.17 time collapsed: 1.59[sec]
+[2020/08/28 19:32:24]: epoch: 01 i_batch: 00026 error: 1.53 time collapsed: 1.89[sec]
+[2020/08/28 19:32:25]: epoch: 01 i_batch: 00027 error: 1.95 time collapsed: 0.92[sec]
+[2020/08/28 19:32:26]: epoch: 01 i_batch: 00028 error: 1.81 time collapsed: 1.10[sec]
