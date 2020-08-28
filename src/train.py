@@ -217,7 +217,7 @@ if __name__ == "__main__":
             #-- ya_pred, yo_pred : (bs, n_word, ny)
             ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:],
                                            seq_size[:], h_input_size[:])
-            continue
+            break
 
             error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach())
             net.zero_grad()
