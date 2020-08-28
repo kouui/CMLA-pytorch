@@ -151,8 +151,8 @@ class CMLANet(nn.Module):
 
         #???
         # ma, mo : (batch_size, 2, n_hidden)
-        ma = torch.cat([torch.cat([self.m0_a.reshape(1,1,-1),]*bs, 1), ma.reshape(bs,1,-1)], axis=1)
-        mo = torch.cat([torch.cat([self.m0_o.reshape(1,1,-1),]*bs, 1), mo.reshape(bs,1,-1)], axis=1)
+        ma = torch.cat([torch.cat([self.m0_a.reshape(1,1,-1),]*bs, 0), ma.reshape(bs,1,-1)], axis=1)
+        mo = torch.cat([torch.cat([self.m0_o.reshape(1,1,-1),]*bs, 0), mo.reshape(bs,1,-1)], axis=1)
 
 
         # hidden_a, hidden_o : (bs, 2, n_word, n_v)
@@ -292,12 +292,12 @@ class CMLANet(nn.Module):
         bs, n_word, nh = h_.shape
 
         #-- hidden_aspect : (bs, n_word, n_v)
-        hidden_aspect = self._get_hidden_opinion(h_, ma_, mo_)
+        hidden_opinion = self._get_hidden_opinion(h_, ma_, mo_)
 
         e_ = torch.zeros( (bs, n_word), dtype=_dtype ).to(self.device)
         ctx_pool_ = torch.zeros( (bs, nh), dtype=_dtype ).to(self.device)
         for b_ in range(bs):
-            e_[b_,:] = torch.matmul( hidden_aspect[b_,:,:], self.vo[:] )
+            e_[b_,:] = torch.matmul( hidden_opinion[b_,:,:], self.vo[:] )
             #-- alpha : (n_word,)
             alpha_ = F.softmax(e_[b_,:], dim=0)
             #print(alpha_.dtype, h_.dtype)
