@@ -30,14 +30,15 @@ def create_x(context_window_, h_input_):
     ---------
     x_ : (batch_size, sequence, context_window * embed_dimension)
     """
-    x_ = torch.empty( (context_window_.shape[0],
+    x_ = torch.zeros( (context_window_.shape[0],
                        context_window_.shape[1],
                        context_window_.shape[2] * h_input_.shape[2]),
                       dtype=_dtype )
 
     for i_ in range( context_window_.shape[0] ):
         index_list_ = context_window_[i_].view(-1).tolist()
-        x_[i_,:,:] = h_input_[i_][index_list_].view(context_window_.shape[1],context_window_.shape[2] * h_input_.shape[2])
+        x_[i_,:,:] = h_input_[i_][index_list_].view(context_window_.shape[1],
+                                     context_window_.shape[2] * h_input_.shape[2])
 
     return x_
 
@@ -126,18 +127,20 @@ class CMLANet(nn.Module):
         for k, v in self.dropout_dict.items():
             v.p = p
 
+    # if True : return 1, 1
+    def forward(self, context_words, h_input, seq_size, h_input_size):
 
-    def forward(self, context_words, h_input):
-
-        h_input[:, -2, :] = self.padding[:] * 1
-        h_input[:, -1, :] = self.punkt[:] * 1
+        bs, n_word, _ = context_words.shape
+        for b in range(bs):
+            h_input[:, h_input_size[b]-2, :] = self.padding[:] * 1
+            h_input[:, h_input_size[b]-1, :] = self.punkt[:] * 1
         self.h_input = h_input
-        #print(h_input.device)
-        print(h_input.requires_grad)
+
 
         #-- x : (batch_size, n_word, n_in)
         x = create_x(context_words, h_input).to(h_input.device)
-        #print(x.device)
+        #print(seq_size, h_input_size, x.shape, x[:,-1,-3:])
+        if True : return 1, 1
         bs, n_word, n_in = x.shape
         n_v = self.n_v
 

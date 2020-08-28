@@ -10,6 +10,50 @@
 import torch
 import numpy as np
 
+def collate_fn(single_data):
+    """Creates mini-batch tensors from the the output of CMLADataset.__getitem__().
+
+    We should build custom collate_fn rather than using default collate_fn,
+    because merging caption (including padding) is not supported in default.
+    Args:
+        data: ...
+    Returns:
+
+    """
+
+    # Sort a data list by caption length (descending order).
+    single_data.sort(key=lambda pair: pair[-1], reverse=True)
+
+    h_input_list, ya_label_list, yo_label_list, index2word_list, \
+                index_embed_list, sent_list, seq_size_list = zip(*single_data)
+
+
+    max_seq_size = max(seq_size_list)
+    max_h_input_size = max( [i.shape[0] for i in h_input_list] )
+    batch_size = len(seq_size_list)
+
+    h_inputs = -1 * torch.ones((batch_size,max_h_input_size,h_input_list[0].shape[1]), dtype=h_input_list[0].dtype)
+    ya_labels = -1 * torch.ones((batch_size,ya_label_list[0].shape[0]), dtype = ya_label_list[0].dtype)
+    yo_labels = -1 * torch.ones((batch_size,yo_label_list[0].shape[0]), dtype = yo_label_list[0].dtype)
+    #index2words = -1 * torch.ones((batch_size,index2word_list[0].shape[0]), index2word_list[0].dtype)
+    #index_embeds = -1 * torch.ones((batch_size,index_embed_list[0].shape[0]), index_embed_list[0].dtype)
+    #seq_sizes = -1 * torch.ones((batch_size,seq_size_list[0].shape[0]), seq_size_list[0].dtype)
+    #ya_labels = ya_label_list
+    #yo_labels = yo_label_list
+    index2words = [i + [j.shape[0]-1,] * (max_seq_size-len(i))
+                       for i, j in zip(index2word_list,h_input_list)]
+    index_embeds = index_embed_list
+    sents = sent_list
+    seq_sizes = seq_size_list
+    h_input_sizes = [i.shape[0] for i in h_input_list]
+
+
+    for b in range(batch_size):
+        h_inputs[b,:h_input_list[b].shape[0],:] = h_input_list[b]
+
+    return h_inputs, ya_labels, yo_labels, index2words, index_embeds, sents, seq_sizes, h_input_sizes
+
+
 class CMLADataset(torch.utils.data.Dataset):
 
     def __init__(self, data_list, emb_model):
@@ -43,15 +87,15 @@ class CMLADataset(torch.utils.data.Dataset):
 
         seq = self.data_list[index]
 
-        h_input, ya_label, yo_label, index2word, index_embed, sent = self.preprocess_single_seq(seq)
+        h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size = self.preprocess_single_seq(seq)
 
         h_input = torch.as_tensor( h_input )
         ya_label = torch.tensor( ya_label, dtype=torch.int16 )
         yo_label = torch.tensor( yo_label, dtype=torch.int16 )
-        index2word = torch.tensor( index2word, dtype=torch.int16 )
-        index_embed = torch.tensor( index_embed, dtype=torch.int64 )
+        #index2word = torch.tensor( index2word, dtype=torch.int16 )
+        #index_embed = torch.tensor( index_embed, dtype=torch.int64 )
 
-        return h_input, ya_label, yo_label, index2word, index_embed, sent
+        return h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size
 
     def set_n_emb_dim(self, n_emb_dim):
         r"""
@@ -70,14 +114,15 @@ class CMLADataset(torch.utils.data.Dataset):
         r"""
         pop out seq that has node.is_word==False in self.data_list
         """
-        pop_list = []
-        for i, seq in enumerate( self.data_list ):
-            for index, node in enumerate( seq.nodes ):
-                if seq.get(index).is_word == 0:
-                    pop_list.append(seq)
-                    break
-        for seq in pop_list:
-            self.data_list.pop(seq)
+        pass
+        ##pop_list = []
+        ##for i, seq in enumerate( self.data_list ):
+        ##    for index, node in enumerate( seq.nodes ):
+        ##        if seq.get(index).is_word == 0:
+        ##            pop_list.append(seq)
+        ##            break
+        ##for seq in pop_list:
+        ##    self.data_list.pop(seq)
 
 
     def preprocess_single_seq(self, seq):
@@ -158,7 +203,7 @@ class CMLADataset(torch.utils.data.Dataset):
 
                 word_index += 1
 
-        return h_input, ya_label, yo_label, index2word, index_embed, sent
+        return h_input, ya_label, yo_label, index2word, index_embed, sent, len(index2word)
 
 
 if __name__ == "__main__":
@@ -178,13 +223,16 @@ if __name__ == "__main__":
     #n_train_seq = len(train_seq_list)
 
     #-- batch_size must be 1 because of the variable length of node
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2,
+                           shuffle=False, num_workers=0, collate_fn=collate_fn)
 
-    for i_batch, (h_input, ya_label, yo_label, index2word, index_embed, sent ) in enumerate(dataloader):
+    for i_batch, (h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size ) in enumerate(dataloader):
 
-        sent = list( zip(*sent) )
         #print(h_input)
         #print( sent )
         #print( h_input.shape, ya_label.shape, yo_label.shape, index2word.shape )
-        print(index_embed)
+        print(h_input.shape, ya_label.shape, yo_label.shape)
+        for i2w in index2word:
+            print(len(i2w))
+        print(seq_size, h_input_size)
         break

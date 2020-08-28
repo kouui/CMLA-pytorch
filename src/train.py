@@ -16,29 +16,28 @@ import os
 from seqItem import SeqItem
 from util import set_status, save_score_to_text
 from model import CMLANet
-from dataset import CMLADataset
+from dataset import CMLADataset, collate_fn
 from score import score_aspect, score_opinion
 
-def create_context_window(index2word_, win_, seq_size_):
+def create_context_window(index2word_list_, win_, h_input_size_list_):
     r"""
     Parameters:
     -----------
-    index2word_ : torch.Tensor, (batch_size, nNode),
+    index2word_list_ : list, (batch_size, nNode),
         order of nodes in each sequence
     win_ : int, corresponding to the size of the window
-    seq_size_ : int, length of (each) sequence
+    h_input_size_list_ : int, length of (each) sequence
     """
 
     assert (win_ % 2) == 1
     assert win_ >= 1
 
-    index2word_list_ = index2word_.tolist()
     out_ = []
-    for li_ in index2word_list_:
-        padded_ = win_//2 * [seq_size_-2,] + li_ +  win_//2 * [seq_size_-2,]
+    for li_, h_input_size_  in zip(index2word_list_, h_input_size_list_):
+        padded_ = win_//2 * [h_input_size_-2,] + li_ +  win_//2 * [h_input_size_-2,]
         out_.append( [ padded_[i_:i_+win_] for i_ in range(len(li_)) ] )
 
-    assert len(out_[0]) == len(index2word_[0])
+    assert len(out_[0]) == len(index2word_list_[0])
 
     return out_
 
@@ -88,7 +87,7 @@ if __name__ == "__main__":
         "nHidden" : 50,
         "nEmbedDimension" : 200,
         "nClass" : 3,
-        "batchSize" : 1,
+        "batchSize" : 2,
         "nEpoch" : 1,
         "evaluateStep" : 500,
         "dropout" : 0.3,
@@ -171,8 +170,9 @@ if __name__ == "__main__":
     for key, value in dataset.items():
         dataloader[key] = torch.utils.data.DataLoader(value,
                                                       batch_size=params["batchSize"],
-                                                      shuffle=True,
-                                                      num_workers=0)
+                                                      shuffle=False,
+                                                      num_workers=0,
+                                                      collate_fn=collate_fn)
 
 #-----------------------------------------------------------------------------
 # training epochs
@@ -188,30 +188,36 @@ if __name__ == "__main__":
         epoch_error = 0.
         count = 0
         for i_batch, batch in enumerate(dataloader["train"]):
+            print(i_batch)
 
-            h_input, ya_label, yo_label, index2word, index_embed, sent = batch
+            h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
             h_input = h_input.to(params["device"])
             ya_label = ya_label.to(params["device"])
             yo_label = yo_label.to(params["device"])
 
-            sent = list( zip(*sent) )
-            seq_size = h_input.shape[1]
+            #sent = list( zip(*sent) )
+            #seq_size = h_input.shape[1]
 
             now = time.time()
 
 #-----------------------------------------------------------------------------
 # training sequence(s)
 #-----------------------------------------------------------------------------
+            #print(index2word)
+            #print(h_input[:,:,0])
+            #print(create_context_window(index2word, params["win"], h_input_size))
 
             context_words = torch.tensor(
-                         create_context_window(index2word, params["win"], seq_size),
+                         create_context_window(index2word, params["win"], h_input_size),
                          dtype=torch.uint8 ).to(params["device"])
 
-            print(index2word, seq_size)
-            print(context_words)
-            break
+            seq_size = torch.tensor(seq_size).to(params["device"])
+            h_input_size = torch.tensor(h_input_size).to(params["device"])
+
             #-- ya_pred, yo_pred : (bs, n_word, ny)
-            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:])
+            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:],
+                                           seq_size[:], h_input_size[:])
+            continue
 
             error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach())
             net.zero_grad()
@@ -247,6 +253,7 @@ if __name__ == "__main__":
 
             if args["debugTrain"] and i_batch > 50:
                 break
+        break
         epoch_error /= count
 
 #-----------------------------------------------------------------------------
