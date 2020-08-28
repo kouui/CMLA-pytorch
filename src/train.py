@@ -42,15 +42,18 @@ def create_context_window(index2word_list_, win_, h_input_size_list_):
     return out_
 
 
-def LossFunc(ya_pred_, yo_pred_, ya_label_, yo_label_):
+def LossFunc(ya_pred_, yo_pred_, ya_label_, yo_label_, seq_size_):
     r"""
     """
 
-    bs, n_word, ny = ya_pred_.shape
+    bs, _, ny = ya_pred_.shape
     loss_mean_ = 0
     for b in range(bs):
+        n_word = seq_size_[b]
         loss_ = 0
         for nw in range(n_word):
+            assert ya_label_[b,nw] > -1
+            assert yo_label_[b,nw] > -1
             loss_ += -torch.log( ya_pred_[b,nw, ya_label_[b,nw] ] )
             loss_ += -torch.log( yo_pred_[b,nw, yo_label_[b,nw] ] )
         loss_ /= n_word
@@ -72,10 +75,11 @@ if __name__ == "__main__":
         "logStatus" : "terminal",
         "logFile" : "",
         "debugTrain" : True,
-        "evaluate" : True,
+        "evaluate" : False,
         "logSequence" : False,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
+        "save" : False,
     }
     args["logFile"] = "../log/" + args["version"] + "/" + datetime.datetime.now().strftime("%Y%m%d_%H%M") + ".txt"
 #-----------------------------------------------------------------------------
@@ -88,11 +92,9 @@ if __name__ == "__main__":
         "nEmbedDimension" : 200,
         "nClass" : 3,
         "batchSize" : 2,
-        "nEpoch" : 1,
-        "evaluateStep" : 500,
+        "nEpoch" : 60,
         "dropout" : 0.3,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-        "save" : False,
         "fixEmbed" : False,
     }
 
@@ -188,12 +190,13 @@ if __name__ == "__main__":
         epoch_error = 0.
         count = 0
         for i_batch, batch in enumerate(dataloader["train"]):
-            print(i_batch)
 
             h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
             h_input = h_input.to(params["device"])
             ya_label = ya_label.to(params["device"])
             yo_label = yo_label.to(params["device"])
+            seq_size = seq_size.to(params["device"])
+            h_input_size = torch.tensor(h_input_size).clone().detach().to(params["device"])
 
             #sent = list( zip(*sent) )
             #seq_size = h_input.shape[1]
@@ -203,27 +206,19 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 # training sequence(s)
 #-----------------------------------------------------------------------------
-            #print(index2word)
-            #print(h_input[:,:,0])
-            #print(create_context_window(index2word, params["win"], h_input_size))
 
             context_words = torch.tensor(
                          create_context_window(index2word, params["win"], h_input_size),
                          dtype=torch.uint8 ).to(params["device"])
 
-            seq_size = torch.tensor(seq_size).to(params["device"])
-            h_input_size = torch.tensor(h_input_size).to(params["device"])
-
             #-- ya_pred, yo_pred : (bs, n_word, ny)
-            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:],
-                                           seq_size[:], h_input_size[:])
-            break
+            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:])
 
-            error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach())
+
+            error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
             net.zero_grad()
             error.backward()
             optimizer.step()
-
 #-----------------------------------------------------------------------------
 # modify embedding model
 #-----------------------------------------------------------------------------
@@ -231,13 +226,30 @@ if __name__ == "__main__":
             if not params["fixEmbed"]:
 
                 h_input_new = net.h_input.detach().cpu().numpy()
+                update_dict = {}
                 for k in range(h_input_new.shape[0]):
-                    for i in index2word[k,:].tolist():
-                        try:
-                            j = index_embed[k,i].data.item()
-                            emb_model[:, j] = h_input_new[k,i,:]
+                    for i in index2word[k][:seq_size[k]]:
+
+                        try :
+                            j = index_embed[k][i]
                         except IndexError:
                             continue
+
+                        try:
+                            update_dict[j].append( (k,i) )
+                        except KeyError:
+                            update_dict[j] = [(k,i),]
+
+                for j, li in update_dict.items():
+                    #print(f"{j} : taking mean over {len(li)} vectors")
+
+                    new_emb_vec = np.zeros(params["nEmbedDimension"])
+                    count = 0
+                    for k, i in li:
+                        new_emb_vec[:] += h_input_new[k,i,:]
+                        count += 1
+                    emb_model[:, j] = new_emb_vec[:] / count
+
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -253,7 +265,7 @@ if __name__ == "__main__":
 
             if args["debugTrain"] and i_batch > 50:
                 break
-        break
+
         epoch_error /= count
 
 #-----------------------------------------------------------------------------
@@ -272,32 +284,35 @@ if __name__ == "__main__":
 
                 for i_batch, batch in enumerate(dataloader["test"]):
 
-                    h_input, ya_label, yo_label, index2word, index_embed, sent = batch
+                    h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
                     h_input = h_input.to(params["device"])
                     ya_label = ya_label.to(params["device"])
                     yo_label = yo_label.to(params["device"])
+                    seq_size = seq_size.to(params["device"])
+                    h_input_size = torch.tensor(h_input_size).clone().detach().to(params["device"])
 
-                    sent = list( zip(*sent) )
-                    seq_size = h_input.shape[1]
 
                     context_words = torch.tensor(
-                                 create_context_window(index2word, params["win"], seq_size),
+                                 create_context_window(index2word, params["win"], h_input_size),
                                  dtype=torch.uint8 ).to(params["device"])
 
-                    ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:])
+                    ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:])
 
                     ya_predLabel = ya_pred.argmax(axis=2)
                     yo_predLabel = yo_pred.argmax(axis=2)
 
                     ##true_list.append([str(y) for y in y_label[0,:]])
-                    true_a.append([str(y) for y in ya_label[0,:]])
-                    true_o.append([str(y) for y in yo_label[0,:]])
-                    pred_a.append([str(y) for y in ya_predLabel[0,:]])
-                    pred_o.append([str(y) for y in yo_predLabel[0,:]])
+                    for b in range(ya_predLabel.shape[0]):
+                        n_word = seq_size[b]
+                        true_a.append([str(y) for y in ya_label[b,:n_word]])
+                        true_o.append([str(y) for y in yo_label[b,:n_word]])
+                        pred_a.append([str(y) for y in ya_predLabel[b,:n_word]])
+                        pred_o.append([str(y) for y in yo_predLabel[b,:n_word]])
 
                 precision_as, recall_as, f1_as = score_aspect(true_a, pred_a)
                 precision_op, recall_op, f1_op = score_opinion(true_o, pred_o)
 
+                if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
 
 #-----------------------------------------------------------------------------
@@ -309,12 +324,14 @@ if __name__ == "__main__":
         if epoch_error < min_error:
             min_error = epoch_error
 
-            if not args["debugTrain"] and params["save"]:
+            if not args["debugTrain"] and args["save"]:
 
                 s_ = "saving model"
                 set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
                 checkpoint = {
                         "model state" : net.state_dict(),
+                        "args" : args,
+                        "params" : params,
                     }
                 folder = f"../checkpoints/{args['version']}"
                 if not os.path.exists(folder) : os.mkdir(folder)

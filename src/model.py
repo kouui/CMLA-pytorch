@@ -128,7 +128,7 @@ class CMLANet(nn.Module):
             v.p = p
 
     # if True : return 1, 1
-    def forward(self, context_words, h_input, seq_size, h_input_size):
+    def forward(self, context_words, h_input, h_input_size):
 
         bs, n_word, _ = context_words.shape
         for b in range(bs):

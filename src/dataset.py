@@ -44,12 +44,14 @@ def collate_fn(single_data):
                        for i, j in zip(index2word_list,h_input_list)]
     index_embeds = index_embed_list
     sents = sent_list
-    seq_sizes = seq_size_list
+    seq_sizes = torch.tensor( seq_size_list )
     h_input_sizes = [i.shape[0] for i in h_input_list]
 
 
     for b in range(batch_size):
         h_inputs[b,:h_input_list[b].shape[0],:] = h_input_list[b]
+        ya_labels[b,:seq_sizes[b]] = ya_label_list[b][:]
+        yo_labels[b,:seq_sizes[b]] = yo_label_list[b][:]
 
     return h_inputs, ya_labels, yo_labels, index2words, index_embeds, sents, seq_sizes, h_input_sizes
 
