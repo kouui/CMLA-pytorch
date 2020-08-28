@@ -70,7 +70,7 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "log",#"terminal",
+        "logStatus" : "log",
         "logFile" : "",
         "debugTrain" : True,
         "evaluate" : True,
