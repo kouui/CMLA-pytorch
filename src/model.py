@@ -53,6 +53,23 @@ def get_rnn_h0_ndim1(rnn_):
 def concatenate_h0(h0_, n_):
     return torch.cat([h0_.reshape(h0_.shape[0],1,h0_.shape[1]),]*n_, 1)
 
+def embed_to_h_input(emb_, index_embed_, h_input_size_, de_, pad_, punkt_):
+
+    max_h_input_size_ = max( h_input_size_ )
+    bs_ = len(h_input_size_)
+
+    h_input_ = torch.zeros( (bs_, max_h_input_size_, de_) ,dtype=_dtype)
+
+    for b_ in range(bs_):
+        for w_ in range(h_input_size_[b_]-2):
+            h_input_[b_,w_,:] = emb_[ :, index_embed_[b_][w_] ]
+        h_input_[:, h_input_size_[b_]-2, :] = pad_[:]
+        h_input_[:, h_input_size_[b_]-1, :] = punkt_[:]
+
+    return h_input_
+
+
+
 class CMLANet(nn.Module):
 
     def __init__(self, nh, nc, de, cs, bs, device, nt_a=20, nt_o=20, csv=1, iteration=1):
@@ -129,6 +146,8 @@ class CMLANet(nn.Module):
 
 
 
+
+
     def set_dropout_rate(self, p):
 
         for k, v in self.dropout_dict.items():
@@ -150,6 +169,14 @@ class CMLANet(nn.Module):
         for b in range(bs):
             self.h_input[:, h_input_size[b]-2, :] = self.padding[:] * 1
             self.h_input[:, h_input_size[b]-1, :] = self.punkt[:] * 1
+
+    def set_embed(self, emb, fixEmbed):
+
+        self.emb = torch.as_tensor( emb ).to(self.device)
+
+        if not fixEmbed:
+            self.pars.append( self.emb )
+            self.emb.requires_grad = True
 
 
     # if True : return 1, 1

@@ -74,9 +74,9 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "terminal",
+        "logStatus" : "log",#"terminal",
         "logFile" : "",
-        "debugTrain" : True,
+        "debugTrain" : False,
         "evaluate" : True,
         "logSequence" : False,
         "version" : "English",
@@ -88,14 +88,14 @@ if __name__ == "__main__":
 # Learning Control Hyperparameters
 #-----------------------------------------------------------------------------
     params = {
-        "lr" : 0.002,
+        "lr" : 0.05,
         "win" : 3,
         "nHidden" : 50,
         "nEmbedDimension" : 200,
         "nClass" : 3,
-        "batchSize" : 1,
+        "batchSize" : 20,
         "nEpoch" : 500,
-        "dropout" : 0.5,
+        "dropout" : 0.0,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "fixEmbed" : False,
     }
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     parameters = list(net.parameters()) + net.pars
     #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"]*0.1, weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
@@ -332,7 +332,9 @@ if __name__ == "__main__":
 
                 if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
-                print(f"{precision_as:.4f}  {recall_as:.4f}  {f1_as:.4f}  {precision_op:.4f}  {recall_op:.4f}  {f1_op:.4f}")
+
+                s_ = f"{precision_as:.4f}  {recall_as:.4f}  {f1_as:.4f}  {precision_op:.4f}  {recall_op:.4f}  {f1_op:.4f}"
+                set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
             error_test /= count_test
 #-----------------------------------------------------------------------------
 
