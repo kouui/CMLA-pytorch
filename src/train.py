@@ -77,7 +77,7 @@ if __name__ == "__main__":
         "logStatus" : "terminal",
         "logFile" : "",
         "debugTrain" : True,
-        "evaluate" : False,
+        "evaluate" : True,
         "logSequence" : False,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
@@ -88,14 +88,14 @@ if __name__ == "__main__":
 # Learning Control Hyperparameters
 #-----------------------------------------------------------------------------
     params = {
-        "lr" : 0.05,
+        "lr" : 0.002,
         "win" : 3,
         "nHidden" : 50,
         "nEmbedDimension" : 200,
         "nClass" : 3,
-        "batchSize" : 2,
-        "nEpoch" : 60,
-        "dropout" : 0.3,
+        "batchSize" : 1,
+        "nEpoch" : 500,
+        "dropout" : 0.5,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "fixEmbed" : False,
     }
@@ -147,8 +147,9 @@ if __name__ == "__main__":
 # optimizer
 #-----------------------------------------------------------------------------
 
-    #optimizer = torch.optim.SGD(params=net.parameters(), lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    optimizer = torch.optim.Adam(params=net.parameters(), lr=params["lr"]*0.1, weight_decay=0, amsgrad=False)
+    parameters = list(net.parameters()) + net.pars
+    #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"]*0.1, weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
@@ -194,7 +195,8 @@ if __name__ == "__main__":
         for i_batch, batch in enumerate(dataloader["train"]):
 
             h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
-            h_input = h_input.to(params["device"])
+
+            h_input = h_input#.to(params["device"])
             ya_label = ya_label.to(params["device"])
             yo_label = yo_label.to(params["device"])
             seq_size = seq_size.to(params["device"])
@@ -214,13 +216,19 @@ if __name__ == "__main__":
                          dtype=torch.uint8 ).to(params["device"])
 
             #-- ya_pred, yo_pred : (bs, n_word, ny)
-            ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:], seq_size[:])
+            net.set_h_input(h_input[:,:,:], h_input_size[:])
+            #print(net.h_input[0,0:5,0])
+            #optimizer.param_groups[0]["params"].append(h_input[:,:,:])
+            ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:])
 
 
             error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
-            net.zero_grad()
+            optimizer.zero_grad()
             error.backward()
             optimizer.step()
+            #print(net.h_input[0,0:5,0])
+            #print(net.padding[:2])
+            #optimizer.param_groups[0]["params"].pop(-1)
 #-----------------------------------------------------------------------------
 # modify embedding model
 #-----------------------------------------------------------------------------
@@ -273,6 +281,7 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 # evaluate here
 #-----------------------------------------------------------------------------
+        error_test = 0.
         if args["evaluate"]:
             s_ = "Evaluating...."
             set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
@@ -284,10 +293,12 @@ if __name__ == "__main__":
                 pred_a = []
                 pred_o = []
 
+                error_test = 0.
+                count_test = 0
                 for i_batch, batch in enumerate(dataloader["test"]):
 
                     h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
-                    h_input = h_input.to(params["device"])
+                    h_input = h_input#.to(params["device"])
                     ya_label = ya_label.to(params["device"])
                     yo_label = yo_label.to(params["device"])
                     seq_size = seq_size.to(params["device"])
@@ -298,7 +309,12 @@ if __name__ == "__main__":
                                  create_context_window(index2word, params["win"], h_input_size),
                                  dtype=torch.uint8 ).to(params["device"])
 
-                    ya_pred, yo_pred = net(context_words[:,:,:], h_input[:,:,:], h_input_size[:], seq_size[:])
+                    net.set_h_input(h_input[:,:,:], h_input_size[:])
+                    ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:])
+
+                    error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
+                    error_test += error
+                    count_test += 1
 
                     ya_predLabel = ya_pred.argmax(axis=2)
                     yo_predLabel = yo_pred.argmax(axis=2)
@@ -316,8 +332,8 @@ if __name__ == "__main__":
 
                 if not os.path.exists("../txt") : os.mkdir("../txt")
                 save_score_to_text(args["text"], epoch, precision_as, recall_as, f1_as, precision_op, recall_op, f1_op)
-                print(f"{precision_as:.3f}  {recall_as:.3f}  {f1_as:.3f}  {precision_op:.3f}  {recall_op:.3f}  {f1_op:.3f}")
-
+                print(f"{precision_as:.4f}  {recall_as:.4f}  {f1_as:.4f}  {precision_op:.4f}  {recall_op:.4f}  {f1_op:.4f}")
+            error_test /= count_test
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -341,5 +357,5 @@ if __name__ == "__main__":
                 torch.save(checkpoint, os.path.join(folder, f"checkpoint_epoch_{epoch}.pkl") )
 #-----------------------------------------------------------------------------
         #-- done with epoch
-        s_ = f"done with epoch {epoch:02d}, epoch_error = {epoch_error:.2f}, min_error = {min_error:.2f}"
+        s_ = f"done with epoch {epoch:03d}, epoch_error = {epoch_error:.3f}, test_error = {error_test:.3f}, min_error = {min_error:.3f}"
         set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)

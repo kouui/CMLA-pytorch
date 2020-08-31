@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
+import copy
 
 _dtype = torch.double
 _dtype_np = np.double
@@ -92,6 +93,10 @@ class CMLANet(nn.Module):
         self.Va = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) ).to(device)
         self.Uo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_o, nh, nh)) ).to(device)
         self.Vo = torch.as_tensor( 0.2 * np.random.uniform(-1.0, 1.0, (nt_a, nh, nh)) ).to(device)
+        self.dropout_dict["Ua"] = nn.Dropout(p=0.0, inplace=False)
+        self.dropout_dict["Va"] = nn.Dropout(p=0.0, inplace=False)
+        self.dropout_dict["Uo"] = nn.Dropout(p=0.0, inplace=False)
+        self.dropout_dict["Vo"] = nn.Dropout(p=0.0, inplace=False)
 
         self.gru_a = nn.GRU(input_size=n_v, hidden_size=n_v, num_layers=1, bias=True, batch_first=True)
         self.dropout_dict["gru_a"] = nn.Dropout(p=0.0, inplace=False)
@@ -115,32 +120,46 @@ class CMLANet(nn.Module):
         self.padding = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) ).to(device)
         self.punkt   = torch.as_tensor( np.random.uniform(-0.2, 0.2, (de,)) ).to(device)
 
-        pars = [self.padding, self.punkt, self.Ma, self.Mo, self.va, self.vo,
-                self.r0_a, self.r0_o, self.Ua, self.Va, self.Uo, self.Vo,
-                self.m0_a, self.m0_o, self.h0]
+        self.pars = [self.padding, self.punkt, self.Ma, self.Mo, self.va, self.vo,
+                     self.r0_a, self.r0_o, self.Ua, self.Va, self.Uo, self.Vo,
+                     self.m0_a, self.m0_o, self.h0]
 
-        for par in pars:
+        for par in self.pars:
             par.requires_grad = True
+
+
 
     def set_dropout_rate(self, p):
 
         for k, v in self.dropout_dict.items():
             v.p = p
 
+    def set_h_input(self, h_input, h_input_size):
+
+        bs = h_input.shape[0]
+
+        #self.h_input = torch.zeros(h_input.numpy().shape, dtype=_dtype, requires_grad=True)
+        #self.h_input[:,:,:] = h_input.numpy()[:,:,:]
+        #self.h_input = torch.as_tensor(h_input.numpy())
+        #self.h_input = copy.deepcopy( h_input ).to(self.device)
+        #self.h_input.requires_grad=True
+        self.h_input = h_input.detach().clone().to(self.device)
+        #self.h_input.requires_grad = True
+
+
+        for b in range(bs):
+            self.h_input[:, h_input_size[b]-2, :] = self.padding[:] * 1
+            self.h_input[:, h_input_size[b]-1, :] = self.punkt[:] * 1
+
+
     # if True : return 1, 1
-    def forward(self, context_words, h_input, h_input_size, seq_size):
+    def forward(self, context_words, h_input_size, seq_size):
 
         self.seq_size  =  seq_size
-
         bs, n_word, _ = context_words.shape
-        for b in range(bs):
-            h_input[:, h_input_size[b]-2, :] = self.padding[:] * 1
-            h_input[:, h_input_size[b]-1, :] = self.punkt[:] * 1
-        self.h_input = h_input
-
 
         #-- x : (batch_size, n_word, n_in)
-        x = create_x(context_words, h_input).to(h_input.device)
+        x = create_x(context_words, self.h_input).to(self.device)
 
         bs, n_word, n_in = x.shape
         n_v = self.n_v
@@ -288,8 +307,8 @@ class CMLANet(nn.Module):
         ##        tensor2_ = self._tensor_product(h_[b_,w_], self.Va, mo_)
         ##        a_[b_,w_,:] = torch.cat((tensor1_, tensor2_), 0)
 
-        tensor1_ = self._tensor_product(h_, self.Ua, ma_)
-        tensor2_ = self._tensor_product(h_, self.Va, mo_)
+        tensor1_ = self._tensor_product(h_, self.dropout_dict["Ua"](self.Ua), ma_)
+        tensor2_ = self._tensor_product(h_, self.dropout_dict["Va"](self.Va), mo_)
         a_ = torch.cat((tensor1_, tensor2_), 2)
         #-- a_ : (bs, n_word, n_v)
         r_, _ = self.gru_a(a_, concatenate_h0(self.r0_a, h_.shape[0]))
@@ -359,8 +378,8 @@ class CMLANet(nn.Module):
         ##        tensor2_ = self._tensor_product(h_[b_,w_], self.Vo, mo_)
         ##        a_[b_,w_,:] = torch.cat((tensor1_, tensor2_), 0)
 
-        tensor1_ = self._tensor_product(h_, self.Uo, ma_)
-        tensor2_ = self._tensor_product(h_, self.Vo, mo_)
+        tensor1_ = self._tensor_product(h_, self.dropout_dict["Uo"](self.Uo), ma_)
+        tensor2_ = self._tensor_product(h_, self.dropout_dict["Vo"](self.Vo), mo_)
         a_ = torch.cat((tensor1_, tensor2_), 2)
 
         #-- a_ : (bs, n_word, n_v)
