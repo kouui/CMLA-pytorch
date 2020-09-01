@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "debugTrain" : True,
         "debugTrainSize" : 50,
         "debugTestSize"  : 5,
-        "evaluate" : False,
+        "evaluate" : True,
         "logSequence" : False,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
@@ -204,9 +204,9 @@ if __name__ == "__main__":
         count = 0
         for i_batch, batch in enumerate(dataloader["train"]):
 
-            h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
+            ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
 
-            h_input = h_input#.to(params["device"])
+            ##h_input = h_input#.to(params["device"])
             ya_label = ya_label.to(params["device"])
             yo_label = yo_label.to(params["device"])
             seq_size = seq_size.to(params["device"])
@@ -302,8 +302,8 @@ if __name__ == "__main__":
                 count_test = 0
                 for i_batch, batch in enumerate(dataloader["test"]):
 
-                    h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
-                    h_input = h_input#.to(params["device"])
+                    ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = batch
+                    ##h_input = h_input#.to(params["device"])
                     ya_label = ya_label.to(params["device"])
                     yo_label = yo_label.to(params["device"])
                     seq_size = seq_size.to(params["device"])

@@ -24,15 +24,15 @@ def collate_fn(single_data):
     # Sort a data list by caption length (descending order).
     single_data.sort(key=lambda pair: pair[-1], reverse=True)
 
-    h_input_list, ya_label_list, yo_label_list, index2word_list, \
-                index_embed_list, sent_list, seq_size_list = zip(*single_data)
+    ya_label_list, yo_label_list, index2word_list, index_embed_list, \
+                   sent_list, seq_size_list, h_input_size_list = zip(*single_data)
 
 
     max_seq_size = max(seq_size_list)
-    max_h_input_size = max( [i.shape[0] for i in h_input_list] )
+    max_h_input_size = max( h_input_size_list )
     batch_size = len(seq_size_list)
 
-    h_inputs = -1 * torch.ones((batch_size,max_h_input_size,h_input_list[0].shape[1]), dtype=h_input_list[0].dtype)
+    ##h_inputs = -1 * torch.ones((batch_size,max_h_input_size,h_input_list[0].shape[1]), dtype=h_input_list[0].dtype)
     ya_labels = -1 * torch.ones((batch_size,ya_label_list[0].shape[0]), dtype = ya_label_list[0].dtype)
     yo_labels = -1 * torch.ones((batch_size,yo_label_list[0].shape[0]), dtype = yo_label_list[0].dtype)
     #index2words = -1 * torch.ones((batch_size,index2word_list[0].shape[0]), index2word_list[0].dtype)
@@ -40,20 +40,21 @@ def collate_fn(single_data):
     #seq_sizes = -1 * torch.ones((batch_size,seq_size_list[0].shape[0]), seq_size_list[0].dtype)
     #ya_labels = ya_label_list
     #yo_labels = yo_label_list
-    index2words = [i + [j.shape[0]-1,] * (max_seq_size-len(i))
-                       for i, j in zip(index2word_list,h_input_list)]
+    
+    index2words = [i + [j-1,] * (max_seq_size-len(i))
+                       for i, j in zip(index2word_list,h_input_size_list)]
     index_embeds = index_embed_list
     sents = sent_list
     seq_sizes = torch.tensor( seq_size_list )
-    h_input_sizes = [i.shape[0] for i in h_input_list]
+    h_input_sizes = h_input_size_list
 
 
     for b in range(batch_size):
-        h_inputs[b,:h_input_list[b].shape[0],:] = h_input_list[b]
+        ##h_inputs[b,:h_input_list[b].shape[0],:] = h_input_list[b]
         ya_labels[b,:seq_sizes[b]] = ya_label_list[b][:]
         yo_labels[b,:seq_sizes[b]] = yo_label_list[b][:]
 
-    return h_inputs, ya_labels, yo_labels, index2words, index_embeds, sents, seq_sizes, h_input_sizes
+    return ya_labels, yo_labels, index2words, index_embeds, sents, seq_sizes, h_input_sizes
 
 
 class CMLADataset(torch.utils.data.Dataset):
@@ -89,15 +90,15 @@ class CMLADataset(torch.utils.data.Dataset):
 
         seq = self.data_list[index]
 
-        h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size = self.preprocess_single_seq(seq)
+        ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size = self.preprocess_single_seq(seq)
 
-        h_input = torch.as_tensor( h_input )
+        ##h_input = torch.as_tensor( h_input )
         ya_label = torch.tensor( ya_label, dtype=torch.int16 )
         yo_label = torch.tensor( yo_label, dtype=torch.int16 )
         #index2word = torch.tensor( index2word, dtype=torch.int16 )
         #index_embed = torch.tensor( index_embed, dtype=torch.int64 )
 
-        return h_input, ya_label, yo_label, index2word, index_embed, sent, seq_size
+        return ya_label, yo_label, index2word, index_embed, sent, seq_size, h_input_size
 
     def set_n_emb_dim(self, n_emb_dim):
         r"""
@@ -157,14 +158,14 @@ class CMLADataset(torch.utils.data.Dataset):
         n_emb_dim = self.n_emb_dim
 
         nodes = seq.get_nodes()
-        for node in nodes:
-            # ? why do we need reshape here
-            node.vec = emb_model[:, node.ind]#.reshape( (n_emb_dim, 1) )
+        ##for node in nodes:
+        ##    # ? why do we need reshape here
+        ##    node.vec = emb_model[:, node.ind]#.reshape( (n_emb_dim, 1) )
 
         nNodes = len( nodes )
 
         # 2 for aux["padding"] and aux["punkt"]
-        h_input = np.zeros( (nNodes+2, n_emb_dim), dtype=np.float64 )
+        ##h_input = np.zeros( (nNodes+2, n_emb_dim), dtype=np.float64 )
         ya_label = []
         yo_label = []
         index2word = []
@@ -201,11 +202,13 @@ class CMLADataset(torch.utils.data.Dataset):
                 index2word.append( word_index )
                 index_embed.append( node.ind )
 
-                h_input[word_index, :] = node.vec[:]
+                ##h_input[word_index, :] = node.vec[:]
 
                 word_index += 1
 
-        return h_input, ya_label, yo_label, index2word, index_embed, sent, len(index2word)
+            h_input_size = nNodes + 2
+
+        return ya_label, yo_label, index2word, index_embed, sent, len(index2word), h_input_size
 
 
 if __name__ == "__main__":
