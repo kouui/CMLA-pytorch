@@ -51,7 +51,8 @@ def get_rnn_h0_ndim1(rnn_):
     return rnn_.num_layers * get_num_directions(rnn_)
 
 def concatenate_h0(h0_, n_):
-    return torch.cat([h0_.reshape(h0_.shape[0],1,h0_.shape[1]),]*n_, 1)
+    #return torch.cat([h0_.reshape(h0_.shape[0],1,h0_.shape[1]),]*n_, 1)
+    return h0_.expand(n_, h0_.shape[0], h0_.shape[1]).transpose(0,1)
 
 def embed_to_h_input(emb_, index_embed_, h_input_size_, de_, pad_, punkt_):
 
@@ -207,8 +208,11 @@ class CMLANet(nn.Module):
 
         #???
         # ma, mo : (batch_size, 2, n_hidden)
-        ma = torch.cat([torch.cat([self.m0_a.reshape(1,1,-1),]*bs, 0), ma.reshape(bs,1,-1)], axis=1)
-        mo = torch.cat([torch.cat([self.m0_o.reshape(1,1,-1),]*bs, 0), mo.reshape(bs,1,-1)], axis=1)
+        ##ma = torch.cat([torch.cat([self.m0_a.reshape(1,1,-1),]*bs, 0), ma.reshape(bs,1,-1)], axis=1)
+        ##mo = torch.cat([torch.cat([self.m0_o.reshape(1,1,-1),]*bs, 0), mo.reshape(bs,1,-1)], axis=1)
+        ma = torch.cat([self.m0_a.reshape(1,1,-1).expand(bs,1,-1), ma.reshape(bs,1,-1)], axis=1)
+        mo = torch.cat([self.m0_o.reshape(1,1,-1).expand(bs,1,-1), mo.reshape(bs,1,-1)], axis=1)
+
 
 
         # hidden_a, hidden_o : (bs, 2, n_word, n_v)
