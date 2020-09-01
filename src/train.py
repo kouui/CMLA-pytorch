@@ -97,7 +97,7 @@ if __name__ == "__main__":
         "nClass" : 3,
         "batchSize" : 1,
         "nEpoch" : 500,
-        "dropout" : 0.,
+        "dropout" : 0.3,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "fixEmbed" : False,
     }
@@ -151,7 +151,9 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 
     parameters = list(net.parameters()) + net.pars
-    optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    #optimizer = torch.optim.RMSprop(params=parameters, lr=params["lr"], weight_decay=0.0)
+    optimizer = torch.optim.ASGD(params=parameters, lr=params["lr"], weight_decay=0.0)
+    #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
     #optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
