@@ -153,8 +153,8 @@ if __name__ == "__main__":
     parameters = list(net.parameters()) + net.pars
     #optimizer = torch.optim.RMSprop(params=parameters, lr=params["lr"], weight_decay=0.0)
     #optimizer = torch.optim.ASGD(params=parameters, lr=params["lr"], weight_decay=0.0)
-    #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    #optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
@@ -327,10 +327,16 @@ if __name__ == "__main__":
                     ##true_list.append([str(y) for y in y_label[0,:]])
                     for b in range(ya_predLabel.shape[0]):
                         n_word = seq_size[b]
-                        true_a.append([str(y) for y in ya_label[b,:n_word]])
-                        true_o.append([str(y) for y in yo_label[b,:n_word]])
-                        pred_a.append([str(y) for y in ya_predLabel[b,:n_word]])
-                        pred_o.append([str(y) for y in yo_predLabel[b,:n_word]])
+                        if params["device"].type == "cpu":
+                            true_a.append([str(y) for y in ya_label.numpy()[b,:n_word]])
+                            true_o.append([str(y) for y in yo_label.numpy()[b,:n_word]])
+                            pred_a.append([str(y) for y in ya_predLabel.numpy()[b,:n_word]])
+                            pred_o.append([str(y) for y in yo_predLabel.numpy()[b,:n_word]])
+                        elif params["device"].type == "cuda":
+                            true_a.append([str(y) for y in ya_label.cpu().numpy()[b,:n_word]])
+                            true_o.append([str(y) for y in yo_label.cpu().numpy()[b,:n_word]])
+                            pred_a.append([str(y) for y in ya_predLabel.cpu().numpy()[b,:n_word]])
+                            pred_o.append([str(y) for y in yo_predLabel.cpu().numpy()[b,:n_word]])
 
                 precision_as, recall_as, f1_as = score_aspect(true_a, pred_a)
                 precision_op, recall_op, f1_op = score_opinion(true_o, pred_o)
