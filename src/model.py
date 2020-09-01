@@ -61,8 +61,9 @@ def embed_to_h_input(emb_, index_embed_, h_input_size_, de_, pad_, punkt_):
     h_input_ = torch.zeros( (bs_, max_h_input_size_, de_) ,dtype=_dtype)
 
     for b_ in range(bs_):
-        for w_ in range(h_input_size_[b_]-2):
-            h_input_[b_,w_,:] = emb_[ :, index_embed_[b_][w_] ]
+        #for w_ in range(h_input_size_[b_]-2):
+        #    h_input_[b_,w_,:] = emb_[ :, index_embed_[b_][w_] ]
+        h_input_[b_,:h_input_size_[b_]-2,:] = emb_[ :, index_embed_[b_]].T
         h_input_[:, h_input_size_[b_]-2, :] = pad_[:]
         h_input_[:, h_input_size_[b_]-1, :] = punkt_[:]
 
@@ -94,6 +95,7 @@ class CMLANet(nn.Module):
         self.n_v = n_v = nt_a + nt_o
         self.n_inv = n_inv = n_v * csv
         self.ny = ny = nc
+        self.de = de
 
         self.dropout_dict = {}
 
@@ -180,9 +182,12 @@ class CMLANet(nn.Module):
 
 
     # if True : return 1, 1
-    def forward(self, context_words, h_input_size, seq_size):
+    def forward(self, context_words, h_input_size, seq_size, index_embed):
 
         self.seq_size  =  seq_size
+
+        self.h_input = embed_to_h_input(self.emb[:,:], index_embed, h_input_size, self.emb.shape[0], self.padding[:], self.punkt[:])
+
         bs, n_word, _ = context_words.shape
 
         #-- x : (batch_size, n_word, n_in)

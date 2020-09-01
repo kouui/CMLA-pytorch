@@ -74,10 +74,12 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "log",#"terminal",
+        "logStatus" : "terminal",
         "logFile" : "",
-        "debugTrain" : False,
-        "evaluate" : True,
+        "debugTrain" : True,
+        "debugTrainSize" : 50,
+        "debugTestSize"  : 5,
+        "evaluate" : False,
         "logSequence" : False,
         "version" : "English",
         "text"    : "../txt/outcome.txt",
@@ -93,9 +95,9 @@ if __name__ == "__main__":
         "nHidden" : 50,
         "nEmbedDimension" : 200,
         "nClass" : 3,
-        "batchSize" : 20,
+        "batchSize" : 1,
         "nEpoch" : 500,
-        "dropout" : 0.0,
+        "dropout" : 0.,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "fixEmbed" : False,
     }
@@ -138,6 +140,7 @@ if __name__ == "__main__":
     net = CMLANet(nh=params["nHidden"], nc=params["nClass"],
                   de=params["nEmbedDimension"], cs=params["win"],
                   bs=params["batchSize"], device=params["device"]).to(params["device"])
+    net.set_embed(emb_model, params["fixEmbed"])
     net.double()
 
     #-- set dropout in net to params["dropout"] here
@@ -148,8 +151,8 @@ if __name__ == "__main__":
 #-----------------------------------------------------------------------------
 
     parameters = list(net.parameters()) + net.pars
-    #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    #optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
@@ -158,9 +161,14 @@ if __name__ == "__main__":
     s_ = "building dataset and dataloader"
     set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
+    if args["debugTrain"]:
+        limit = args["debugTrainSize"], args["debugTestSize"]
+    else:
+        limit = len(train_seq_list), len(test_seq_list)
+
     dataset = {
-        "train" : CMLADataset(data_list=train_seq_list, emb_model=emb_model),
-        "test"  : CMLADataset(data_list=test_seq_list, emb_model=emb_model)
+        "train" : CMLADataset(data_list=train_seq_list[:limit[0]], emb_model=emb_model),
+        "test"  : CMLADataset(data_list=test_seq_list[:limit[1]] , emb_model=emb_model)
     }
     dataset["train"].set_n_emb_dim(params["nEmbedDimension"])
     dataset["test"].set_n_emb_dim(params["nEmbedDimension"])
@@ -175,7 +183,7 @@ if __name__ == "__main__":
     for key, value in dataset.items():
         dataloader[key] = torch.utils.data.DataLoader(value,
                                                       batch_size=params["batchSize"],
-                                                      shuffle=False,
+                                                      shuffle=True,
                                                       num_workers=0,
                                                       collate_fn=collate_fn)
 
@@ -216,49 +224,47 @@ if __name__ == "__main__":
                          dtype=torch.uint8 ).to(params["device"])
 
             #-- ya_pred, yo_pred : (bs, n_word, ny)
-            net.set_h_input(h_input[:,:,:], h_input_size[:])
-            #print(net.h_input[0,0:5,0])
-            #optimizer.param_groups[0]["params"].append(h_input[:,:,:])
-            ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:])
-
+            #net.set_h_input(h_input[:,:,:], h_input_size[:])
+            #print(net.emb[0,index_embed])
+            ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:], index_embed)
 
             error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
-            #print(net.h_input[0,0:5,0])
-            #print(net.padding[:2])
-            #optimizer.param_groups[0]["params"].pop(-1)
+            #print(net.emb[0,index_embed])
 #-----------------------------------------------------------------------------
 # modify embedding model
+# now embed_model is a tensor belonging to net(model),
+# so we do not need to modify embed_model here
 #-----------------------------------------------------------------------------
 
-            if not params["fixEmbed"]:
-
-                h_input_new = net.h_input.detach().cpu().numpy()
-                update_dict = {}
-                for k in range(h_input_new.shape[0]):
-                    for i in index2word[k][:seq_size[k]]:
-
-                        try :
-                            j = index_embed[k][i]
-                        except IndexError:
-                            continue
-
-                        try:
-                            update_dict[j].append( (k,i) )
-                        except KeyError:
-                            update_dict[j] = [(k,i),]
-
-                for j, li in update_dict.items():
-                    #print(f"{j} : taking mean over {len(li)} vectors")
-
-                    new_emb_vec = np.zeros(params["nEmbedDimension"])
-                    count_ = 0
-                    for k, i in li:
-                        new_emb_vec[:] += h_input_new[k,i,:]
-                        count_ += 1
-                    emb_model[:, j] = new_emb_vec[:] / count_
+##            if not params["fixEmbed"]:
+##
+##                h_input_new = net.h_input.detach().cpu().numpy()
+##                update_dict = {}
+##                for k in range(h_input_new.shape[0]):
+##                    for i in index2word[k][:seq_size[k]]:
+##
+##                        try :
+##                            j = index_embed[k][i]
+##                        except IndexError:
+##                            continue
+##
+##                        try:
+##                            update_dict[j].append( (k,i) )
+##                        except KeyError:
+##                            update_dict[j] = [(k,i),]
+##
+##                for j, li in update_dict.items():
+##                    #print(f"{j} : taking mean over {len(li)} vectors")
+##
+##                    new_emb_vec = np.zeros(params["nEmbedDimension"])
+##                    count_ = 0
+##                    for k, i in li:
+##                        new_emb_vec[:] += h_input_new[k,i,:]
+##                        count_ += 1
+##                    emb_model[:, j] = new_emb_vec[:] / count_
 
 #-----------------------------------------------------------------------------
 
@@ -272,9 +278,6 @@ if __name__ == "__main__":
                 s_ = f"epoch: {epoch:02d} i_batch: {i_batch:05d} error: {error:.2f} "
                 s_ += f"time collapsed: {time.time()-now:.2f}[sec]"
                 set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
-
-            if args["debugTrain"] and i_batch > 50:
-                break
 
         epoch_error /= count
 
@@ -309,8 +312,8 @@ if __name__ == "__main__":
                                  create_context_window(index2word, params["win"], h_input_size),
                                  dtype=torch.uint8 ).to(params["device"])
 
-                    net.set_h_input(h_input[:,:,:], h_input_size[:])
-                    ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:])
+                    #net.set_h_input(h_input[:,:,:], h_input_size[:])
+                    ya_pred, yo_pred = net(context_words[:,:,:], h_input_size[:], seq_size[:], index_embed)
 
                     error = LossFunc(ya_pred, yo_pred, ya_label.detach(), yo_label.detach(), seq_size.detach())
                     error_test += error

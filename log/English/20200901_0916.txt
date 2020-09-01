@@ -1,0 +1,8 @@
+[2020/09/01 09:16:13]: loading data
+[2020/09/01 09:16:13]: loading embed model
+[2020/09/01 09:16:13]: initializing network model
+[2020/09/01 09:16:13]: building dataset and dataloader
+[2020/09/01 09:16:13]: length of train set : 1315
+[2020/09/01 09:16:13]: length of test set : 685
+[2020/09/01 09:16:13]: start training
+[2020/09/01 09:16:17]: done with epoch 001, epoch_error = 1.413, test_error = 0.000, min_error = 1.413
