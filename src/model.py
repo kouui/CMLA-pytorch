@@ -52,7 +52,7 @@ def get_rnn_h0_ndim1(rnn_):
 
 def concatenate_h0(h0_, n_):
     #return torch.cat([h0_.reshape(h0_.shape[0],1,h0_.shape[1]),]*n_, 1)
-    return h0_.expand(n_, h0_.shape[0], h0_.shape[1]).transpose(0,1)
+    return h0_.expand(n_, h0_.shape[0], h0_.shape[1]).transpose(0,1).contiguous()
 
 def embed_to_h_input(emb_, index_embed_, h_input_size_, de_, pad_, punkt_):
 

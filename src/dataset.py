@@ -22,7 +22,7 @@ def collate_fn(single_data):
     """
 
     # Sort a data list by caption length (descending order).
-    single_data.sort(key=lambda pair: pair[-1], reverse=True)
+    single_data.sort(key=lambda pair: pair[-2], reverse=True)
 
     ya_label_list, yo_label_list, index2word_list, index_embed_list, \
                    sent_list, seq_size_list, h_input_size_list = zip(*single_data)
@@ -40,7 +40,7 @@ def collate_fn(single_data):
     #seq_sizes = -1 * torch.ones((batch_size,seq_size_list[0].shape[0]), seq_size_list[0].dtype)
     #ya_labels = ya_label_list
     #yo_labels = yo_label_list
-    
+
     index2words = [i + [j-1,] * (max_seq_size-len(i))
                        for i, j in zip(index2word_list,h_input_size_list)]
     index_embeds = index_embed_list

@@ -1,0 +1,19 @@
+[2020/09/01 17:09:49]: loading data
+[2020/09/01 17:09:49]: loading embed model
+[2020/09/01 17:09:49]: initializing network model
+[2020/09/01 17:09:49]: building dataset and dataloader
+[2020/09/01 17:09:49]: length of train set : 1315
+[2020/09/01 17:09:49]: length of test set : 685
+[2020/09/01 17:09:49]: start training
+[2020/09/01 17:11:57]: Evaluating....
+[2020/09/01 17:12:08]: 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[2020/09/01 17:12:08]: done with epoch 001, epoch_error = 1.180, test_error = 1.106, min_error = 1.180
+[2020/09/01 17:14:16]: Evaluating....
+[2020/09/01 17:14:26]: 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[2020/09/01 17:14:28]: done with epoch 002, epoch_error = 1.179, test_error = 1.058, min_error = 1.179
+[2020/09/01 17:16:36]: Evaluating....
+[2020/09/01 17:16:46]: 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[2020/09/01 17:16:48]: done with epoch 003, epoch_error = 1.153, test_error = 1.073, min_error = 1.153
+[2020/09/01 17:18:55]: Evaluating....
+[2020/09/01 17:19:05]: 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[2020/09/01 17:19:08]: done with epoch 004, epoch_error = 1.153, test_error = 1.119, min_error = 1.153

@@ -152,9 +152,9 @@ if __name__ == "__main__":
 
     parameters = list(net.parameters()) + net.pars
     #optimizer = torch.optim.RMSprop(params=parameters, lr=params["lr"], weight_decay=0.0)
-    optimizer = torch.optim.ASGD(params=parameters, lr=params["lr"], weight_decay=0.0)
+    #optimizer = torch.optim.ASGD(params=parameters, lr=params["lr"], weight_decay=0.0)
     #optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
-    #optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
+    optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
 # dataset and dataloader
