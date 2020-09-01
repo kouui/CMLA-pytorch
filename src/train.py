@@ -66,6 +66,37 @@ def LossFunc(ya_pred_, yo_pred_, ya_label_, yo_label_, seq_size_):
 
     return loss_mean_
 
+def LossFunc1(ya_pred_, yo_pred_, ya_label_, yo_label_, seq_size_):
+    r"""
+    """
+
+    bs, _, ny = ya_pred_.shape
+    loss_mean_ = 0
+    for b in range(bs):
+        n_word = seq_size_[b]
+        loss_ = 0
+        for nw in range(n_word):
+            assert ya_label_[b,nw] > -1
+            assert yo_label_[b,nw] > -1
+            #print(ya_pred_[b,nw])
+            #print(yo_pred_[b,nw])
+            #loss_ += -2*torch.log( ya_pred_[b,nw, ya_label_[b,nw] ] ) + torch.log( ya_pred_[b,nw, : ] ).sum()
+            #loss_ += -2*torch.log( yo_pred_[b,nw, yo_label_[b,nw] ] ) + torch.log( yo_pred_[b,nw, : ] ).sum()
+            if ya_label_[b,nw].item() == 0:
+                weight = 0.6
+            else:
+                weight = 1.0
+            loss_ += -1 * weight * torch.log( 0.5*(ya_pred_[b,nw, ya_label_[b,nw] ] - ya_pred_[b,nw, : ] + 1.) ).mean()
+            loss_ += -1 * weight * torch.log( 0.5*(yo_pred_[b,nw, yo_label_[b,nw] ] - yo_pred_[b,nw, : ] + 1.) ).mean()
+
+        loss_ /= n_word
+
+        loss_mean_ += loss_
+    loss_mean_ /= bs
+
+
+    return loss_mean_
+
 if __name__ == "__main__":
 
 #-----------------------------------------------------------------------------
@@ -74,9 +105,9 @@ if __name__ == "__main__":
     args = {
         "data" : "../data/res15/final_input_res15",
         "embModel" : "../data/res15/word_embeddings200_res15",
-        "logStatus" : "terminal",
+        "logStatus" : "log",
         "logFile" : "",
-        "debugTrain" : True,
+        "debugTrain" : False,
         "debugTrainSize" : 50,
         "debugTestSize"  : 5,
         "evaluate" : True,
@@ -97,7 +128,7 @@ if __name__ == "__main__":
         "nClass" : 3,
         "batchSize" : 1,
         "nEpoch" : 500,
-        "dropout" : 0.3,
+        "dropout" : 0.,
         "device"  : torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "fixEmbed" : False,
     }
@@ -153,7 +184,7 @@ if __name__ == "__main__":
     parameters = list(net.parameters()) + net.pars
     #optimizer = torch.optim.RMSprop(params=parameters, lr=params["lr"], weight_decay=0.0)
     #optimizer = torch.optim.ASGD(params=parameters, lr=params["lr"], weight_decay=0.0)
-    optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0.9, weight_decay=0.0)
+    optimizer = torch.optim.SGD(params=parameters, lr=params["lr"], momentum=0., weight_decay=0.0)
     #optimizer = torch.optim.Adam(params=parameters, lr=params["lr"], weight_decay=0, amsgrad=False)
 
 #-----------------------------------------------------------------------------
