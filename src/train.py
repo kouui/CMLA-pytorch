@@ -103,16 +103,16 @@ if __name__ == "__main__":
 # Configuration Parameters
 #-----------------------------------------------------------------------------
     args = {
-        "data" : "../data/res15/final_input_res15",
-        "embModel" : "../data/res15/word_embeddings200_res15",
+        "data" : "../data/jpdata/final_input",
+        "embModel" : "../data/jpdata/word_embeddings200",
         "logStatus" : "log",
         "logFile" : "",
         "debugTrain" : False,
         "debugTrainSize" : 50,
         "debugTestSize"  : 5,
         "evaluate" : True,
-        "logSequence" : False,
-        "version" : "English",
+        "logSequence" : True,
+        "version" : "Japanese",
         "text"    : "../txt/outcome.txt",
         "save" : False,
     }
@@ -158,8 +158,11 @@ if __name__ == "__main__":
     s_ = "loading embed model"
     set_status(s_=s_, status_=args["logStatus"], fileObj_=fileObj)
 
+    #with open(args["embModel"], 'rb') as handle:
+    #    emb_model = pickle.load(handle, encoding="bytes")
+
     with open(args["embModel"], 'rb') as handle:
-        emb_model = pickle.load(handle, encoding="bytes")
+        emb_model = pickle.load(handle)
 
 #-----------------------------------------------------------------------------
 # model initialization

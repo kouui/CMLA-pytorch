@@ -9,6 +9,8 @@
 import numpy as np
 import pickle
 
+import sys
+
 if __name__ == "__main__":
 
     assert len(sys.argv)==3
@@ -33,7 +35,7 @@ if __name__ == "__main__":
         dictionary[word] = vector
 
 
-    with open(f"{dirs['output']}/final_input_res15", "rb") as handle
+    with open(f"{dirs['output']}/final_input", "rb") as handle:
         final_input = pickle.load(handle)
 
     vocab = final_input[0]
@@ -50,12 +52,12 @@ if __name__ == "__main__":
                 row += 1
             count += 1
         else:
-            print word,
+            print(word)
             for i in range(200):
                 word_embedding[i][ind] = 2 * np.random.rand() - 1
 
-    print( f"length of vocab : {len(vocab)}"" )
+    print( f"length of vocab : {len(vocab)}" )
     print( f"counting of embedded words : {count}" )
 
-    with open(f"{dirs['output']}/word_embeddings200_res15", "wb") as handle:
+    with open(f"{dirs['output']}/word_embeddings200", "wb") as handle:
         pickle.dump(word_embedding, handle)
